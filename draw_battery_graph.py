@@ -1,0 +1,97 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+def draw(log_file, output, label):
+    with open(log_file, "r") as fi:
+        lines = fi.readlines()
+        timestamps = []
+        events = []
+        start_time = 0
+        stop_time = 0
+        for line in lines:
+            if "Time: " in line:
+                fields = line.split("\t")
+                timestamps.append(int(fields[0].split(" ")[-1]))
+                events.append(fields[1].strip())
+            elif "Total Images: " in line:
+                total_images = int(line.split(" ")[-1].strip())
+            elif "Start: " in line:
+                start_time = int(line.split(" ")[-1].strip())
+            elif "Stop: " in line:
+                stop_time = int(line.split(" ")[-1].strip())
+        total_time = stop_time - start_time
+
+        voltage_t = []
+        current_t = []
+        voltage_y = []
+        current_y = []
+        for i, event in enumerate(events):
+            if timestamps[i] < start_time:
+                continue
+            if "Battery voltage" in event:
+                voltage_t.append(timestamps[i] - start_time)
+                voltage_y.append(int(event.split(" ")[-1]))
+            elif "Current" in event:
+                current_t.append(timestamps[i] - start_time)
+                current_y.append(int(event.split(" ")[-1]))
+
+        voltage_y = np.asarray(voltage_y) / 1000.
+        current_y = np.asarray(current_y) / 1000000.
+        voltage_t = np.asarray(voltage_t) / 1000.
+        current_t = np.asarray(current_t) / 1000.
+
+        fig, ax = plt.subplots()
+        ax.plot(current_t, current_y, color="red", marker=".")
+        ax.set_xlabel("time /s", fontsize=12)
+        ax.set_ylabel("current /A", color="red", fontsize=12)
+        ax.set_ylim((0, 1))
+
+        ax2 = ax.twinx()
+        ax2.plot(voltage_t, voltage_y, color="blue", marker=".")
+        ax2.set_ylabel("voltage /V", color="blue", fontsize=12)
+        ax2.set_ylim((0, 5))
+        plt.title(label)
+        plt.show()
+        fig.savefig(output, format='jpeg', dpi=100, bbox_inches='tight')
+
+        power_y = []
+        vi = 0
+        for ci, ts in enumerate(current_t):
+            while vi + 1 < len(voltage_t) and voltage_t[vi + 1] <= ts:
+                vi += 1
+            power_y.append(voltage_y[vi] * current_y[ci])
+        return label, current_t, power_y, total_time, total_images
+
+
+def compare_power(profiles, output):
+    fig, ax = plt.subplots()
+    ax.set_xlabel("time /s", fontsize=12)
+    ax.set_ylabel("power /W", fontsize=12)
+    ax.set_ylim((0, 4))
+
+    for prof in profiles:
+        print(prof[0] + ":")
+        ax.plot(prof[1], prof[2], marker=".", label=prof[0])
+        time_per_frame = prof[3] / prof[4]
+        print("Total images: " + str(prof[4]))
+        print("Total time (ms): " + str(prof[3]))
+        print("Time per frame (ms): " + str(time_per_frame))
+        average_power = np.sum(prof[2]) / len(prof[2])
+        print("Average power (W): " + str(average_power))
+        energy_per_frame = average_power * time_per_frame / 1000.
+        print("Energy per frame (J): " + str(energy_per_frame))
+        print()
+
+    plt.title("Power Comparison")
+    plt.legend()
+    plt.show()
+    fig.savefig(output, format='jpeg', dpi=100, bbox_inches='tight')
+
+
+if __name__ == "__main__":
+    thumbsup_profile = draw("TFLTest-thumbsup.txt", "battery_thumbsup.jpg", "Thumbs-up Detection")
+    od_profile = draw("TFLTest-od.txt", "battery_od.jpg", "EfficientDet")
+    od_classifier_profile = draw("TFLTest-od-classifier.txt", "battery_od_classifier.jpg", "EfficientDet + ResNet50")
+    power_profiles = [thumbsup_profile, od_profile, od_classifier_profile]
+    compare_power(power_profiles, "power_comparison.jpg")
