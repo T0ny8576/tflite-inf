@@ -5,6 +5,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.RectF;
 import android.os.Environment;
 import android.os.SystemClock;
+import android.util.Log;
 
 import org.tensorflow.lite.support.image.ImageProcessor;
 import org.tensorflow.lite.support.image.TensorImage;
@@ -18,15 +19,18 @@ import org.tensorflow.lite.gpu.CompatibilityList;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
 
 public class Pipeline {
-
+    private static final String TAG = "Pipeline";
     ImageClassifier imageClassifier = null;
     ObjectDetector objectDetector = null;
+    FileWriter logFileWriter;
 
-    public Pipeline() {
+    public Pipeline(MainActivity mainActivity) {
+        this.logFileWriter = mainActivity.logFileWriter;
         try {
             ImageClassifier.ImageClassifierOptions.Builder optionsBuilder =
                     ImageClassifier.ImageClassifierOptions.builder()
@@ -77,32 +81,41 @@ public class Pipeline {
         int bad = 0;
 
         classifyImage("/sdcard/test_images/stirling/1screw/2_frame-0000.jpg", "warmup");
-        System.out.println("Finished warmup");
+        Log.d(TAG, "Warmup finished.");
 
         File testImages = new File( Environment.getExternalStorageDirectory().getPath()
                 + "/test_images/stirling");
-        int count = 0;
-        long start = SystemClock.uptimeMillis();
-        for (File classDir : testImages.listFiles()) {
+        for (int i = 0; i < 1; i++) {
+            File classDir = testImages.listFiles()[i];
             String correctClass = classDir.getName();
-            for (File imageFile : classDir.listFiles()) {
+//            final int imageCount = classDir.list().length;
+//            Log.d(TAG, "Total Images: " + imageCount);
+            final int imageCount = 400;
+            try {
+                logFileWriter.write(TAG + ": Total Images: " + imageCount + "\n");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            try {
+                logFileWriter.write(TAG + ": Start: " + SystemClock.uptimeMillis() + "\n");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            for (int j = 0; j < 400; j++) {
+                File imageFile = classDir.listFiles()[j];
                 if (classifyImage(imageFile.getPath(), correctClass)) {
                     good++;
                 } else {
                     bad++;
                 }
 
-                count++;
-                if (count == 200) {
-                    long end = SystemClock.uptimeMillis();
-                    System.out.println(end - start);
-                    System.out.println("Good: " + good + " Bad: " + bad);
-                    count = 0;
-                    start = SystemClock.uptimeMillis();
-                }
+            }
+            try {
+                logFileWriter.write(TAG + ": Stop: " + SystemClock.uptimeMillis() + "\n");
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
-        System.out.println("Good: " + good + " Bad: " + bad);
     }
 
     private boolean classifyImage(String imagePath, String correctClass) {

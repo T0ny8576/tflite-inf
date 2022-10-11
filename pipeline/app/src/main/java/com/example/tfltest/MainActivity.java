@@ -36,22 +36,25 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private static final String LOGFILE = "TFLTest.txt";
+    private static final long TIMER_PERIOD = 2000;
 
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
     private ExecutorService pool;
     private BatteryManager mBatteryManager;
-    private BroadcastReceiver batteryReceiver;
-    private FileWriter logFileWriter;
+    BroadcastReceiver batteryReceiver;
+    FileWriter logFileWriter;
+    Timer timer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
         File logFile = new File(getExternalFilesDir(null), LOGFILE);
         logFile.delete();
         logFile = new File(getExternalFilesDir(null), LOGFILE);
-        Log.d(TAG, logFile.getPath());
+//        Log.d(TAG, logFile.getPath());
         try {
             logFileWriter = new FileWriter(logFile, true);
         } catch (IOException e) {
@@ -90,7 +93,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onReceive(Context context, Intent intent) {
                 int voltage = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, Integer.MIN_VALUE);
-//                Log.w(TAG, "Battery voltage = " + voltage);
                 String voltageMsg = TAG + ": Time: " + SystemClock.uptimeMillis() +
                         "\tBattery voltage = " + voltage + "\n";
                 try {
@@ -104,12 +106,31 @@ public class MainActivity extends AppCompatActivity {
 
         mBatteryManager = (BatteryManager) getSystemService(Context.BATTERY_SERVICE);
 
+        timer = new Timer();
+        timer.scheduleAtFixedRate(new LogTimerTask(), 0, TIMER_PERIOD);
         pool = Executors.newFixedThreadPool(1);
-        pool.execute(this::runTest);
-//        pool.execute(() -> {
-//            Pipeline pipeline = new Pipeline();
-//            pipeline.runTest();
-//        });
+
+//        pool.execute(this::runTest);
+
+        pool.execute(() -> {
+            Pipeline pipeline = new Pipeline(this);
+            pipeline.runTest();
+            closeLog();
+        });
+    }
+
+    class LogTimerTask extends TimerTask {
+        @Override
+        public void run() {
+            int current = mBatteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
+            String testMag = TAG + ": Time: " + SystemClock.uptimeMillis() +
+                    "\tCurrent: " + current + "\n";
+            try {
+                logFileWriter.write(testMag);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @Override
@@ -143,20 +164,39 @@ public class MainActivity extends AppCompatActivity {
 
     private Hands hands;
 
+    private void closeLog() {
+        timer.cancel();
+        timer.purge();
+        unregisterReceiver(batteryReceiver);
+        try {
+            logFileWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        runOnUiThread(() -> {
+            binding.fab.setVisibility(View.INVISIBLE);
+        });
+    }
+
     public void runTest() {
         final String testBasedir = Environment.getExternalStorageDirectory().getPath() +
                 "/test_images/hands";
         File testImages = new File(testBasedir + "/unknown");
         final int imageCount = testImages.list().length;
-        Log.i(TAG, "Total Images: " + imageCount);
+//        Log.d(TAG, "Total Images: " + imageCount);
+        try {
+            logFileWriter.write(TAG + ": Total Images: " + imageCount + "\n");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-        AtomicInteger flowControlToken = new AtomicInteger(2);
+        final int MAX_TOKEN = 2;
+        AtomicInteger flowControlToken = new AtomicInteger(MAX_TOKEN);
 
         AtomicInteger good = new AtomicInteger();
         AtomicInteger bad = new AtomicInteger();
         AtomicInteger thumbsUp = new AtomicInteger();
         AtomicInteger processed = new AtomicInteger();
-        AtomicLong start = new AtomicLong(SystemClock.uptimeMillis());
 
         HandsOptions handsOptions = HandsOptions.builder()
                 .setStaticImageMode(true)
@@ -176,53 +216,36 @@ public class MainActivity extends AppCompatActivity {
                             thumbsUp.incrementAndGet();
                         }
                     }
-                    if (processedUpdated % 200 == 0 || processedUpdated == imageCount) {
-//                        long elapsed = SystemClock.uptimeMillis() - start.get();
-                        int current = mBatteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
-//                        Log.w(TAG, "TimeDelta: " + elapsed + "\tGood: " + good.get() +
-//                                "\tBad: " + bad.get() + "\tThumbsUp: " + thumbsUp.get() +
-//                                "\tCurrent: " + current);
-                        String testMag = TAG + ": Time: " + SystemClock.uptimeMillis() +
-                                "\tGood: " + good.get() + "\tBad: " + bad.get() +
-                                "\tThumbsUp: " + thumbsUp.get() + "\tCurrent: " + current + "\n";
-                        try {
-                            logFileWriter.write(testMag);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        start.set(SystemClock.uptimeMillis());
-                    }
                     flowControlToken.incrementAndGet();
                 });
         hands.setErrorListener((message, e) -> Log.e(TAG, "MediaPipe Hands error:" + message));
 
 //        detectHands(testBasedir + "/2022-09-02-22-03-36-685853-none(bolt).jpg");
-//        Log.i(TAG, "Warmup finished.");
+//        Log.d(TAG, "Warmup finished.");
+
+        try {
+            logFileWriter.write(TAG + ": Start: " + SystemClock.uptimeMillis() + "\n");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         for (int i = 0; i < imageCount; i++) {
             File imageFile = testImages.listFiles()[i];
             while (flowControlToken.get() <= 0) {
-
             }
             detectHands(imageFile.getPath());
             flowControlToken.decrementAndGet();
         }
-        while (flowControlToken.get() < 2) {
-
+        while (flowControlToken.get() < MAX_TOKEN) {
         }
 
-//        Log.w(TAG, "Now running the TFL test...");
-//        Pipeline pipeline = new Pipeline();
-//        pipeline.runTest();
-        unregisterReceiver(batteryReceiver);
         try {
-            logFileWriter.close();
+            logFileWriter.write(TAG + ": Stop: " + SystemClock.uptimeMillis() + "\n");
         } catch (IOException e) {
             e.printStackTrace();
         }
-        runOnUiThread(() -> {
-            binding.fab.setVisibility(View.INVISIBLE);
-        });
+
+        closeLog();
     }
 
     private void detectHands(String imagePath) {
