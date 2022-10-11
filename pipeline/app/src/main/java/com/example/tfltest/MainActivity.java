@@ -176,6 +176,7 @@ public class MainActivity extends AppCompatActivity {
         runOnUiThread(() -> {
             binding.fab.setVisibility(View.INVISIBLE);
         });
+        Log.d(TAG, "Profiling completed.");
     }
 
     public void runTest() {

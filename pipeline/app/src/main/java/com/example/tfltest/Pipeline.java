@@ -38,8 +38,8 @@ public class Pipeline {
                             .setMaxResults(1);
 
             BaseOptions.Builder baseOptionsBuilder = BaseOptions.builder().setNumThreads(1);
-            
-            // Works on Google Glass even though 
+
+            // Works on Google Glass even though
             // (new CompatibilityList()).isDelegateSupportedOnThisDevice() returns false.
             baseOptionsBuilder.useGpu();
 
@@ -65,7 +65,7 @@ public class Pipeline {
             if ((new CompatibilityList()).isDelegateSupportedOnThisDevice()) {
                 baseOptionsBuilder.useGpu();
             }
-            
+
             optionsBuilder.setBaseOptions(baseOptionsBuilder.build());
 
             File modelFile = new File("/sdcard/tflite_models/sitrling_all_classes.tflite");
