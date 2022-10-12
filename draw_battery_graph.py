@@ -90,8 +90,9 @@ def compare_power(profiles, output):
 
 
 if __name__ == "__main__":
-    thumbsup_profile = draw("TFLTest-thumbsup.txt", "battery_thumbsup.jpg", "Thumbs-up Detection")
-    od_profile = draw("TFLTest-od.txt", "battery_od.jpg", "EfficientDet")
-    od_classifier_profile = draw("TFLTest-od-classifier.txt", "battery_od_classifier.jpg", "EfficientDet + ResNet50")
+    thumbsup_profile = draw("TFLTest-thumbsup-1s.txt", "battery_thumbsup.jpg", "Thumbs-up Detection")
+    od_profile = draw("TFLTest-ed0-1s.txt", "battery_od.jpg", "EfficientDet D0")
+    od_classifier_profile = draw("TFLTest-ed0-r50-1s.txt", "battery_od_classifier.jpg",
+                                 "EfficientDet D0 + ResNet50")
     power_profiles = [thumbsup_profile, od_profile, od_classifier_profile]
     compare_power(power_profiles, "power_comparison.jpg")

@@ -38,6 +38,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -46,15 +47,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private static final String LOGFILE = "TFLTest.txt";
-    private static final long TIMER_PERIOD = 2000;
+    private static final long TIMER_PERIOD = 1000;
 
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
     private ExecutorService pool;
     private BatteryManager mBatteryManager;
-    BroadcastReceiver batteryReceiver;
-    FileWriter logFileWriter;
-    Timer timer;
+    private BroadcastReceiver batteryReceiver;
+    private FileWriter logFileWriter;
+    private Timer timer;
+    ConcurrentLinkedDeque<String> logList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,6 +89,7 @@ public class MainActivity extends AppCompatActivity {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        logList = new ConcurrentLinkedDeque<>();
 
         IntentFilter intentFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
         batteryReceiver = new BroadcastReceiver() {
@@ -95,11 +98,7 @@ public class MainActivity extends AppCompatActivity {
                 int voltage = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, Integer.MIN_VALUE);
                 String voltageMsg = TAG + ": Time: " + SystemClock.uptimeMillis() +
                         "\tBattery voltage = " + voltage + "\n";
-                try {
-                    logFileWriter.write(voltageMsg);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                logList.add(voltageMsg);
             }
         };
         registerReceiver(batteryReceiver, intentFilter);
@@ -110,13 +109,13 @@ public class MainActivity extends AppCompatActivity {
         timer.scheduleAtFixedRate(new LogTimerTask(), 0, TIMER_PERIOD);
         pool = Executors.newFixedThreadPool(1);
 
-        pool.execute(this::runTest);
+//        pool.execute(this::runTest);
 
-//        pool.execute(() -> {
-//            Pipeline pipeline = new Pipeline(this);
-//            pipeline.runTest();
-//            closeLog();
-//        });
+        pool.execute(() -> {
+            Pipeline pipeline = new Pipeline(this);
+            pipeline.runTest();
+            writeLog();
+        });
     }
 
     class LogTimerTask extends TimerTask {
@@ -125,11 +124,7 @@ public class MainActivity extends AppCompatActivity {
             int current = mBatteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
             String testMag = TAG + ": Time: " + SystemClock.uptimeMillis() +
                     "\tCurrent: " + current + "\n";
-            try {
-                logFileWriter.write(testMag);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            logList.add(testMag);
         }
     }
 
@@ -164,11 +159,14 @@ public class MainActivity extends AppCompatActivity {
 
     private Hands hands;
 
-    private void closeLog() {
+    private void writeLog() {
         timer.cancel();
         timer.purge();
         unregisterReceiver(batteryReceiver);
         try {
+            for (String logString: logList) {
+                logFileWriter.write(logString);
+            }
             logFileWriter.close();
         } catch (IOException e) {
             e.printStackTrace();
@@ -185,11 +183,6 @@ public class MainActivity extends AppCompatActivity {
         File testImages = new File(testBasedir + "/unknown");
         final int imageCount = testImages.list().length;
 //        Log.d(TAG, "Total Images: " + imageCount);
-        try {
-            logFileWriter.write(TAG + ": Total Images: " + imageCount + "\n");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
 
         final int MAX_TOKEN = 2;
         AtomicInteger flowControlToken = new AtomicInteger(MAX_TOKEN);
@@ -208,7 +201,7 @@ public class MainActivity extends AppCompatActivity {
 
         hands.setResultListener(
                 handsResult -> {
-                    int processedUpdated = processed.incrementAndGet();
+                    processed.incrementAndGet();
                     if (handsResult.multiHandLandmarks().isEmpty()) {
                         bad.incrementAndGet();
                     } else {
@@ -224,11 +217,7 @@ public class MainActivity extends AppCompatActivity {
 //        detectHands(testBasedir + "/2022-09-02-22-03-36-685853-none(bolt).jpg");
 //        Log.d(TAG, "Warmup finished.");
 
-        try {
-            logFileWriter.write(TAG + ": Start: " + SystemClock.uptimeMillis() + "\n");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        logList.add(TAG + ": Start: " + SystemClock.uptimeMillis() + "\n");
 
         for (int i = 0; i < imageCount; i++) {
             File imageFile = testImages.listFiles()[i];
@@ -240,13 +229,10 @@ public class MainActivity extends AppCompatActivity {
         while (flowControlToken.get() < MAX_TOKEN) {
         }
 
-        try {
-            logFileWriter.write(TAG + ": Stop: " + SystemClock.uptimeMillis() + "\n");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        logList.add(TAG + ": Total Images: " + processed.get() + "\n");
+        logList.add(TAG + ": Stop: " + SystemClock.uptimeMillis() + "\n");
 
-        closeLog();
+        writeLog();
     }
 
     private void detectHands(String imagePath) {

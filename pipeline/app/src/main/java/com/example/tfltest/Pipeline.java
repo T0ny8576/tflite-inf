@@ -19,18 +19,18 @@ import org.tensorflow.lite.gpu.CompatibilityList;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 public class Pipeline {
     private static final String TAG = "Pipeline";
     ImageClassifier imageClassifier = null;
     ObjectDetector objectDetector = null;
-    FileWriter logFileWriter;
+    ConcurrentLinkedDeque<String> logList;
 
     public Pipeline(MainActivity mainActivity) {
-        this.logFileWriter = mainActivity.logFileWriter;
+        this.logList = mainActivity.logList;
         try {
             ImageClassifier.ImageClassifierOptions.Builder optionsBuilder =
                     ImageClassifier.ImageClassifierOptions.builder()
@@ -68,7 +68,7 @@ public class Pipeline {
 
             optionsBuilder.setBaseOptions(baseOptionsBuilder.build());
 
-            File modelFile = new File("/sdcard/tflite_models/sitrling_all_classes.tflite");
+            File modelFile = new File("/sdcard/tflite_models/ed0.tflite");
             objectDetector = ObjectDetector.createFromFileAndOptions(
                     modelFile, optionsBuilder.build());
         } catch (IOException e) {
@@ -85,23 +85,20 @@ public class Pipeline {
 
         File testImages = new File( Environment.getExternalStorageDirectory().getPath()
                 + "/test_images/stirling");
-        for (int i = 0; i < 1; i++) {
+        final int folderCount = testImages.list().length;
+        final int testImagePerFolder = 150;
+        final int imageCount = testImagePerFolder * folderCount;
+
+        logList.add(TAG + ": Total Images: " + imageCount + "\n");
+        logList.add(TAG + ": Start: " + SystemClock.uptimeMillis() + "\n");
+
+        for (int i = 0; i < folderCount; i++) {
             File classDir = testImages.listFiles()[i];
             String correctClass = classDir.getName();
 //            final int imageCount = classDir.list().length;
 //            Log.d(TAG, "Total Images: " + imageCount);
-            final int imageCount = 400;
-            try {
-                logFileWriter.write(TAG + ": Total Images: " + imageCount + "\n");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            try {
-                logFileWriter.write(TAG + ": Start: " + SystemClock.uptimeMillis() + "\n");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            for (int j = 0; j < 400; j++) {
+
+            for (int j = 0; j < testImagePerFolder; j++) {
                 File imageFile = classDir.listFiles()[j];
                 if (classifyImage(imageFile.getPath(), correctClass)) {
                     good++;
@@ -110,12 +107,9 @@ public class Pipeline {
                 }
 
             }
-            try {
-                logFileWriter.write(TAG + ": Stop: " + SystemClock.uptimeMillis() + "\n");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
+
+        logList.add(TAG + ": Stop: " + SystemClock.uptimeMillis() + "\n");
     }
 
     private boolean classifyImage(String imagePath, String correctClass) {
