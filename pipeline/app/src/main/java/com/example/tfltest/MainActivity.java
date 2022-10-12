@@ -110,13 +110,13 @@ public class MainActivity extends AppCompatActivity {
         timer.scheduleAtFixedRate(new LogTimerTask(), 0, TIMER_PERIOD);
         pool = Executors.newFixedThreadPool(1);
 
-//        pool.execute(this::runTest);
+        pool.execute(this::runTest);
 
-        pool.execute(() -> {
-            Pipeline pipeline = new Pipeline(this);
-            pipeline.runTest();
-            closeLog();
-        });
+//        pool.execute(() -> {
+//            Pipeline pipeline = new Pipeline(this);
+//            pipeline.runTest();
+//            closeLog();
+//        });
     }
 
     class LogTimerTask extends TimerTask {
@@ -262,14 +262,21 @@ public class MainActivity extends AppCompatActivity {
                 (Boolean)handState.get("index_finger_closed") &&
                 (Boolean)handState.get("middle_finger_closed") &&
                 (Boolean)handState.get("ring_finger_closed") &&
-                (Boolean)handState.get("pinky_finger_closed")) {
-            if ((Double)handState.get("orientation") > 120 ||
-                    (Double)handState.get("orientation") < -150 ||
-                    ((Double)handState.get("orientation") < 60 &&
-                            (Double)handState.get("orientation") > -30)) {
-                if (handState.get("thumb_orientation").equals("up") &&
-                        handState.get("finger_y_order").equals("up")) {
-                    return true;
+                (Boolean)handState.get("pinky_closed")) {
+
+            if ((Double)handState.get("thumb_middle_angle") <= 90 &&
+                    (Double)handState.get("thumb_middle_angle") > (Double)handState.get("thumb_index_angle") &&
+                    (Double)handState.get("thumb_index_angle") > 15) {
+
+                if ((Double)handState.get("orientation") > 120 ||
+                        (Double)handState.get("orientation") < -150 ||
+                        ((Double)handState.get("orientation") < 60 &&
+                                (Double)handState.get("orientation") > -30)) {
+
+                    if (handState.get("thumb_orientation").equals("up") &&
+                            handState.get("finger_y_order").equals("up")) {
+                        return true;
+                    }
                 }
             }
         }
@@ -278,6 +285,16 @@ public class MainActivity extends AppCompatActivity {
 
     private double dist2D(double x1, double y1, double x2, double y2) {
         return Math.hypot(Math.abs(y2 - y1), Math.abs(x2 - x1));
+    }
+
+    private double dot2D(double v1x, double v1y, double v2x, double v2y) {
+        return v1x * v2x + v1y * v2y;
+    }
+
+    private double vectorAngleDegree(double v1x, double v1y, double v2x, double v2y) {
+        return Math.toDegrees(Math.acos(dot2D(v1x, v1y, v2x, v2y) /
+                Math.sqrt(dot2D(v1x, v1y, v1x, v1y)) /
+                Math.sqrt(dot2D(v2x, v2y, v2x, v2y))));
     }
 
     private HashMap<String, Object> getHandState(HandsResult result) {
@@ -307,6 +324,17 @@ public class MainActivity extends AppCompatActivity {
         double d03 = dist2D(x0, y0, x3, y3);
         double d04 = dist2D(x0, y0, x4, y4);
         handState.put("thumb_open", d04 > d03 && d03 > d02 && d02 > d01);
+
+        double x5 = handLandmark.get(HandLandmark.INDEX_FINGER_MCP).getX() * width;
+        double y5 = handLandmark.get(HandLandmark.INDEX_FINGER_MCP).getY() * height;
+        double v04x = x4 - x0;
+        double v04y = y4 - y0;
+        double v05x = x5 - x0;
+        double v05y = y5 - y0;
+        double v09x = x9 - x0;
+        double v09y = y9 - y0;
+        handState.put("thumb_index_angle", vectorAngleDegree(v04x, v04y, v05x, v05y));
+        handState.put("thumb_middle_angle", vectorAngleDegree(v04x, v04y, v09x, v09y));
 
         double x6 = handLandmark.get(HandLandmark.INDEX_FINGER_PIP).getX() * width;
         double y6 = handLandmark.get(HandLandmark.INDEX_FINGER_PIP).getY() * height;
@@ -350,7 +378,7 @@ public class MainActivity extends AppCompatActivity {
         double d018 = dist2D(x0, y0, x18, y18);
         double d019 = dist2D(x0, y0, x19, y19);
         double d020 = dist2D(x0, y0, x20, y20);
-        handState.put("pinky_finger_closed", d018 > d019 && d019 > d020);
+        handState.put("pinky_closed", d018 > d019 && d019 > d020);
 
         Integer[] landmarkYOrder = new Integer[handLandmark.size()];
         for (int i = 0; i < landmarkYOrder.length; i++) {
