@@ -20,6 +20,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
@@ -76,44 +77,7 @@ public class Pipeline {
         }
     }
 
-    public void runTest() {
-        int good = 0;
-        int bad = 0;
-
-        classifyImage("/sdcard/test_images/stirling/1screw/2_frame-0000.jpg", "warmup");
-        Log.d(TAG, "Warmup finished.");
-
-        File testImages = new File( Environment.getExternalStorageDirectory().getPath()
-                + "/test_images/stirling");
-        final int folderCount = testImages.list().length;
-        final int testImagePerFolder = 150;
-        final int imageCount = testImagePerFolder * folderCount;
-
-        logList.add(TAG + ": Total Images: " + imageCount + "\n");
-        logList.add(TAG + ": Start: " + SystemClock.uptimeMillis() + "\n");
-
-        for (int i = 0; i < folderCount; i++) {
-            File classDir = testImages.listFiles()[i];
-            String correctClass = classDir.getName();
-//            final int imageCount = classDir.list().length;
-//            Log.d(TAG, "Total Images: " + imageCount);
-
-            for (int j = 0; j < testImagePerFolder; j++) {
-                File imageFile = classDir.listFiles()[j];
-                if (classifyImage(imageFile.getPath(), correctClass)) {
-                    good++;
-                } else {
-                    bad++;
-                }
-
-            }
-        }
-
-        logList.add(TAG + ": Stop: " + SystemClock.uptimeMillis() + "\n");
-    }
-
-    private boolean classifyImage(String imagePath, String correctClass) {
-        Bitmap image = BitmapFactory.decodeFile(imagePath);
+    private boolean classifyImage(Bitmap image, String correctClass) {
         ImageProcessor imageProcessor = (new ImageProcessor.Builder()).build();
         TensorImage tensorImage = imageProcessor.process(TensorImage.fromBitmap(image));
 
@@ -149,5 +113,93 @@ public class Pipeline {
         }
 
         return results.get(0).getCategories().get(0).getLabel().equals(correctClass);
+    }
+
+    public void testPipeline() {
+        int good = 0;
+        int bad = 0;
+
+        classifyImage(BitmapFactory.decodeFile("/sdcard/test_images/stirling/1screw/2_frame-0000.jpg"), "warmup");
+        Log.d(TAG, "Warmup finished.");
+
+        File testImages = new File( Environment.getExternalStorageDirectory().getPath()
+                + "/test_images/stirling");
+        final int folderCount = testImages.list().length;
+        final int testImagePerFolder = 150;
+        final int imageCount = testImagePerFolder * folderCount;
+        File[] classDirs = testImages.listFiles();
+
+        logList.add(TAG + ": Total Images: " + imageCount + "\n");
+        logList.add(TAG + ": Start: " + SystemClock.uptimeMillis() + "\n");
+
+        for (int i = 0; i < folderCount; i++) {
+            File classDir = classDirs[i];
+            String correctClass = classDir.getName();
+//            final int imageCount = classDir.list().length;
+//            Log.d(TAG, "Total Images: " + imageCount);
+
+            File[] imageFiles = classDir.listFiles();
+            for (int j = 0; j < testImagePerFolder; j++) {
+                File imageFile = imageFiles[j];
+                Bitmap image = BitmapFactory.decodeFile(imageFile.getPath());
+                if (classifyImage(image, correctClass)) {
+                    good++;
+                } else {
+                    bad++;
+                }
+            }
+        }
+
+        logList.add(TAG + ": Stop: " + SystemClock.uptimeMillis() + "\n");
+    }
+
+    public void testPHashPipeline() {
+        int good = 0;
+        int bad = 0;
+
+        classifyImage(BitmapFactory.decodeFile("/sdcard/test_images/stirling/1screw/2_frame-0000.jpg"), "warmup");
+        Log.d(TAG, "Warmup finished.");
+
+        File testImages = new File( Environment.getExternalStorageDirectory().getPath()
+                + "/test_images/stirling");
+        final int folderCount = testImages.list().length;
+        final int testImagePerFolder = 150;
+        final int imageCount = testImagePerFolder * folderCount;
+        File[] classDirs = testImages.listFiles();
+        long lastPHash = 0;
+        int uniqueCount = 0;
+
+        logList.add(TAG + ": Total Images: " + imageCount + "\n");
+        logList.add(TAG + ": Start: " + SystemClock.uptimeMillis() + "\n");
+
+        for (int i = 0; i < folderCount; i++) {
+            File classDir = classDirs[i];
+            String correctClass = classDir.getName();
+//            final int imageCount = classDir.list().length;
+//            Log.d(TAG, "Total Images: " + imageCount);
+            final int DIFF_THRESHOLD = 2;
+
+            File[] imageFiles = classDir.listFiles();
+            Arrays.sort(imageFiles);
+
+            for (int j = 0; j < testImagePerFolder; j++) {
+                File imageFile = imageFiles[j];
+                Bitmap image = BitmapFactory.decodeFile(imageFile.getPath());
+                long curPHash = ImagePHash.pHash(image);
+                if (ImagePHash.distance(lastPHash, curPHash) >= DIFF_THRESHOLD) {
+                    uniqueCount++;
+                    lastPHash = curPHash;
+                    if (classifyImage(image, correctClass)) {
+                        good++;
+                    } else {
+                        bad++;
+                    }
+                }
+            }
+        }
+//        Log.d(TAG, "Unique Images: " + uniqueCount);
+
+        logList.add(TAG + ": Unique Images: " + uniqueCount + "\n");
+        logList.add(TAG + ": Stop: " + SystemClock.uptimeMillis() + "\n");
     }
 }

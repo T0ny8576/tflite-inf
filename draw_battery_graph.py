@@ -9,6 +9,8 @@ def draw(log_file, output, label):
         events = []
         start_time = 0
         stop_time = 0
+        total_images = None
+        unique_images = None
         for line in lines:
             if "Time: " in line:
                 fields = line.split("\t")
@@ -16,6 +18,8 @@ def draw(log_file, output, label):
                 events.append(fields[1].strip())
             elif "Total Images: " in line:
                 total_images = int(line.split(" ")[-1].strip())
+            elif "Unique Images: " in line:
+                unique_images = int(line.split(" ")[-1].strip())
             elif "Start: " in line:
                 start_time = int(line.split(" ")[-1].strip())
             elif "Stop: " in line:
@@ -61,7 +65,7 @@ def draw(log_file, output, label):
             while vi + 1 < len(voltage_t) and voltage_t[vi + 1] <= ts:
                 vi += 1
             power_y.append(voltage_y[vi] * current_y[ci])
-        return label, current_t, power_y, total_time, total_images
+        return label, current_t, power_y, total_time, total_images, unique_images
 
 
 def compare_power(profiles, output):
@@ -74,13 +78,16 @@ def compare_power(profiles, output):
         print(prof[0] + ":")
         ax.plot(prof[1], prof[2], marker=".", label=prof[0])
         time_per_frame = prof[3] / prof[4]
-        print("Total images: " + str(prof[4]))
-        print("Total time (ms): " + str(prof[3]))
-        print("Time per frame (ms): " + str(time_per_frame))
+        print("Total images: {}".format(prof[4]))
+        if prof[5] is not None:
+            print("Unique images: {}".format(prof[5]))
+            print("Removal rate: {:.2%}".format(1. - prof[5] / prof[4]))
+        print("Total time (ms): {}".format(prof[3]))
+        print("Time per frame (ms): {}".format(time_per_frame))
         average_power = np.sum(prof[2]) / len(prof[2])
-        print("Average power (W): " + str(average_power))
+        print("Average power (W): {}".format(average_power))
         energy_per_frame = average_power * time_per_frame / 1000.
-        print("Energy per frame (J): " + str(energy_per_frame))
+        print("Energy per frame (J): {}".format(energy_per_frame))
         print()
 
     plt.title("Power Comparison")
@@ -92,7 +99,11 @@ def compare_power(profiles, output):
 if __name__ == "__main__":
     thumbsup_profile = draw("TFLTest-thumbsup-1s.txt", "battery_thumbsup.jpg", "Thumbs-up Detection")
     od_profile = draw("TFLTest-ed0-1s.txt", "battery_od.jpg", "EfficientDet D0")
-    od_classifier_profile = draw("TFLTest-ed0-r50-1s.txt", "battery_od_classifier.jpg",
-                                 "EfficientDet D0 + ResNet50")
-    power_profiles = [thumbsup_profile, od_profile, od_classifier_profile]
+    od_classifier_profile = draw("TFLTest-ed0-r50-1s.txt", "battery_od_classifier.jpg", "ED0 + ResNet50")
+    phash_profile = draw("TFLTest-phash-1s.txt", "battery_phash.jpg", "Perceptual Hash")
+    phash_od_profile = draw("TFLTest-phash-ed0-1s.txt", "battery_phash_od.jpg", "pHash + ED0")
+    phash_od_classifier_profile = draw("TFLTest-phash-ed0-r50-1s.txt", "battery_phash_od_classifier.jpg",
+                                       "pHash + ED0 + ResNet50")
+    power_profiles = [thumbsup_profile, od_profile, od_classifier_profile,
+                      phash_profile, phash_od_profile, phash_od_classifier_profile]
     compare_power(power_profiles, "power_comparison.jpg")

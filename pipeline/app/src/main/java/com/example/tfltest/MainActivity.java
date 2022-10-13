@@ -109,13 +109,23 @@ public class MainActivity extends AppCompatActivity {
         timer.scheduleAtFixedRate(new LogTimerTask(), 0, TIMER_PERIOD);
         pool = Executors.newFixedThreadPool(1);
 
-//        pool.execute(this::runTest);
+        // 1. Test thumbs-up detection
+//        pool.execute(this::testThumbsUp);
 
+        // 2. Test pipeline
         pool.execute(() -> {
             Pipeline pipeline = new Pipeline(this);
-            pipeline.runTest();
+//            pipeline.testPipeline();
+            pipeline.testPHashPipeline();
             writeLog();
         });
+
+        // 3. Test perceptual hashing
+//        pool.execute(() -> {
+//            ImagePHash imagePHash = new ImagePHash(this);
+//            imagePHash.testPHash();
+//            writeLog();
+//        });
     }
 
     class LogTimerTask extends TimerTask {
@@ -177,7 +187,7 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "Profiling completed.");
     }
 
-    public void runTest() {
+    public void testThumbsUp() {
         final String testBasedir = Environment.getExternalStorageDirectory().getPath() +
                 "/test_images/hands";
         File testImages = new File(testBasedir + "/unknown");
@@ -217,10 +227,11 @@ public class MainActivity extends AppCompatActivity {
 //        detectHands(testBasedir + "/2022-09-02-22-03-36-685853-none(bolt).jpg");
 //        Log.d(TAG, "Warmup finished.");
 
+        File[] imageFiles = testImages.listFiles();
         logList.add(TAG + ": Start: " + SystemClock.uptimeMillis() + "\n");
 
         for (int i = 0; i < imageCount; i++) {
-            File imageFile = testImages.listFiles()[i];
+            File imageFile = imageFiles[i];
             while (flowControlToken.get() <= 0) {
             }
             detectHands(imageFile.getPath());
