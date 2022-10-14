@@ -112,14 +112,15 @@ public class MainActivity extends AppCompatActivity {
 
         // 1. Test thumbs-up detection
 //        pool.execute(this::testThumbsUp);
+        pool.execute(this::testPHashThumbsUp);
 
         // 2. Test pipeline
-        pool.execute(() -> {
-            Pipeline pipeline = new Pipeline(this);
-//            pipeline.testPipeline();
-            pipeline.testPHashPipeline();
-            writeLog();
-        });
+//        pool.execute(() -> {
+//            Pipeline pipeline = new Pipeline(this);
+////            pipeline.testPipeline();
+//            pipeline.testPHashPipeline();
+//            writeLog();
+//        });
 
         // 3. Test perceptual hashing
 //        pool.execute(() -> {
@@ -188,78 +189,7 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "Profiling completed.");
     }
 
-    public void testThumbsUp() {
-        final String testBasedir = Environment.getExternalStorageDirectory().getPath() +
-                "/test_images/hands";
-        File testImages = new File(testBasedir + "/unknown");
-//        final int imageCount = testImages.list().length;
-//        Log.d(TAG, "Total Images: " + imageCount);
-        final int imageCount = 1200;
-
-        final int MAX_TOKEN = 2;
-        AtomicInteger flowControlToken = new AtomicInteger(MAX_TOKEN);
-
-        AtomicInteger good = new AtomicInteger();
-        AtomicInteger bad = new AtomicInteger();
-        AtomicInteger thumbsUp = new AtomicInteger();
-        AtomicInteger processed = new AtomicInteger();
-
-        HandsOptions handsOptions = HandsOptions.builder()
-                .setStaticImageMode(true)
-                .setMaxNumHands(2)
-                .setRunOnGpu(true)
-                .build();
-        hands = new Hands(this, handsOptions);
-
-        hands.setResultListener(
-                handsResult -> {
-                    processed.incrementAndGet();
-                    if (handsResult.multiHandLandmarks().isEmpty()) {
-                        bad.incrementAndGet();
-                    } else {
-                        good.incrementAndGet();
-                        if (detectThumbsUp(handsResult)) {
-                            thumbsUp.incrementAndGet();
-                        }
-                    }
-                    flowControlToken.incrementAndGet();
-                });
-        hands.setErrorListener((message, e) -> Log.e(TAG, "MediaPipe Hands error:" + message));
-
-//        detectHands(testBasedir + "/2022-09-02-22-03-36-685853-none(bolt).jpg");
-//        Log.d(TAG, "Warmup finished.");
-
-        File[] imageFiles = testImages.listFiles();
-        logList.add(TAG + ": Start: " + SystemClock.uptimeMillis() + "\n");
-
-        long last_frame_time = SystemClock.uptimeMillis() - FRAME_INPUT_INTERVAL_MS;
-        for (int i = 0; i < imageCount; i++) {
-            File imageFile = imageFiles[i];
-//            while (flowControlToken.get() <= 0) {
-//            }
-            long cur_frame_time = SystemClock.uptimeMillis();
-            if (last_frame_time + FRAME_INPUT_INTERVAL_MS > cur_frame_time) {
-                try {
-                    Thread.sleep(last_frame_time + FRAME_INPUT_INTERVAL_MS - cur_frame_time);
-                } catch (InterruptedException e) {
-                    Log.w(TAG, "Thread interrupted.");
-                }
-            }
-            detectHands(imageFile.getPath());
-            flowControlToken.decrementAndGet();
-            last_frame_time += FRAME_INPUT_INTERVAL_MS;
-        }
-        while (flowControlToken.get() < MAX_TOKEN) {
-        }
-
-        logList.add(TAG + ": Total Images: " + processed.get() + "\n");
-        logList.add(TAG + ": Stop: " + SystemClock.uptimeMillis() + "\n");
-
-        writeLog();
-    }
-
-    private void detectHands(String imagePath) {
-        Bitmap image = BitmapFactory.decodeFile(imagePath);
+    private void detectHands(Bitmap image) {
         if (image != null) {
             hands.send(image);
         }
@@ -412,5 +342,161 @@ public class MainActivity extends AppCompatActivity {
         handState.put("finger_y_order", fingerYOrder);
 
         return handState;
+    }
+
+    public void testThumbsUp() {
+        final String testBasedir = Environment.getExternalStorageDirectory().getPath() +
+                "/test_images/hands";
+        File testImages = new File(testBasedir + "/unknown");
+//        final int imageCount = testImages.list().length;
+//        Log.d(TAG, "Total Images: " + imageCount);
+        final int imageCount = 1200;
+
+        final int MAX_TOKEN = 2;
+        AtomicInteger flowControlToken = new AtomicInteger(MAX_TOKEN);
+
+        AtomicInteger good = new AtomicInteger();
+        AtomicInteger bad = new AtomicInteger();
+        AtomicInteger thumbsUp = new AtomicInteger();
+        AtomicInteger processed = new AtomicInteger();
+
+        HandsOptions handsOptions = HandsOptions.builder()
+                .setStaticImageMode(true)
+                .setMaxNumHands(2)
+                .setRunOnGpu(true)
+                .build();
+        hands = new Hands(this, handsOptions);
+
+        hands.setResultListener(
+                handsResult -> {
+                    processed.incrementAndGet();
+                    if (handsResult.multiHandLandmarks().isEmpty()) {
+                        bad.incrementAndGet();
+                    } else {
+                        good.incrementAndGet();
+                        if (detectThumbsUp(handsResult)) {
+                            thumbsUp.incrementAndGet();
+                        }
+                    }
+                    flowControlToken.incrementAndGet();
+                });
+        hands.setErrorListener((message, e) -> Log.e(TAG, "MediaPipe Hands error:" + message));
+
+//        detectHands(BitmapFactory.decodeFile(testBasedir + "/2022-09-02-22-03-36-685853-none(bolt).jpg"));
+//        Log.d(TAG, "Warmup finished.");
+
+        File[] imageFiles = testImages.listFiles();
+        logList.add(TAG + ": Start: " + SystemClock.uptimeMillis() + "\n");
+
+        long last_frame_time = SystemClock.uptimeMillis() - FRAME_INPUT_INTERVAL_MS;
+        for (int i = 0; i < imageCount; i++) {
+            File imageFile = imageFiles[i];
+            Bitmap image = BitmapFactory.decodeFile(imageFile.getPath());
+//            while (flowControlToken.get() <= 0) {
+//            }
+            long cur_frame_time = SystemClock.uptimeMillis();
+            if (last_frame_time + FRAME_INPUT_INTERVAL_MS > cur_frame_time) {
+                try {
+                    Thread.sleep(last_frame_time + FRAME_INPUT_INTERVAL_MS - cur_frame_time);
+                } catch (InterruptedException e) {
+                    Log.w(TAG, "Thread interrupted.");
+                }
+            }
+            detectHands(image);
+            flowControlToken.decrementAndGet();
+            last_frame_time += FRAME_INPUT_INTERVAL_MS;
+        }
+
+        while (flowControlToken.get() < MAX_TOKEN) {
+        }
+        logList.add(TAG + ": Total Images: " + processed.get() + "\n");
+        logList.add(TAG + ": Stop: " + SystemClock.uptimeMillis() + "\n");
+
+        writeLog();
+    }
+
+    public void testPHashThumbsUp() {
+        final String testBasedir = Environment.getExternalStorageDirectory().getPath() +
+                "/test_images/hands";
+        File testImages = new File(testBasedir + "/unknown");
+//        final int imageCount = testImages.list().length;
+//        Log.d(TAG, "Total Images: " + imageCount);
+        final int imageCount = 1200;
+
+        final int MAX_TOKEN = 2;
+        AtomicInteger flowControlToken = new AtomicInteger(MAX_TOKEN);
+
+        AtomicInteger good = new AtomicInteger();
+        AtomicInteger bad = new AtomicInteger();
+        AtomicInteger thumbsUp = new AtomicInteger();
+        AtomicInteger processed = new AtomicInteger();
+
+        HandsOptions handsOptions = HandsOptions.builder()
+                .setStaticImageMode(true)
+                .setMaxNumHands(2)
+                .setRunOnGpu(true)
+                .build();
+        hands = new Hands(this, handsOptions);
+
+        hands.setResultListener(
+                handsResult -> {
+                    processed.incrementAndGet();
+                    if (handsResult.multiHandLandmarks().isEmpty()) {
+                        bad.incrementAndGet();
+                    } else {
+                        good.incrementAndGet();
+                        if (detectThumbsUp(handsResult)) {
+                            thumbsUp.incrementAndGet();
+                        }
+                    }
+                    flowControlToken.incrementAndGet();
+                });
+        hands.setErrorListener((message, e) -> Log.e(TAG, "MediaPipe Hands error:" + message));
+
+//        detectHands(BitmapFactory.decodeFile(testBasedir + "/2022-09-02-22-03-36-685853-none(bolt).jpg"));
+//        Log.d(TAG, "Warmup finished.");
+
+        File[] imageFiles = testImages.listFiles();
+        Arrays.sort(imageFiles);
+        long lastPHash = 0;
+        int uniqueCount = 0;
+        final int DIFF_THRESHOLD = 2;
+
+        logList.add(TAG + ": Start: " + SystemClock.uptimeMillis() + "\n");
+
+        long last_frame_time = SystemClock.uptimeMillis() - FRAME_INPUT_INTERVAL_MS;
+        for (int i = 0; i < imageCount; i++) {
+            File imageFile = imageFiles[i];
+            Bitmap image = BitmapFactory.decodeFile(imageFile.getPath());
+
+            long cur_frame_time = SystemClock.uptimeMillis();
+            if (last_frame_time + FRAME_INPUT_INTERVAL_MS > cur_frame_time) {
+                try {
+                    Thread.sleep(last_frame_time + FRAME_INPUT_INTERVAL_MS - cur_frame_time);
+                } catch (InterruptedException e) {
+                    Log.w(TAG, "Thread interrupted.");
+                }
+            }
+
+            long curPHash = ImagePHash.pHash(image);
+            if (ImagePHash.distance(lastPHash, curPHash) >= DIFF_THRESHOLD) {
+                uniqueCount++;
+                lastPHash = curPHash;
+//                while (flowControlToken.get() <= 0) {
+//                }
+                detectHands(image);
+                flowControlToken.decrementAndGet();
+            }
+            last_frame_time += FRAME_INPUT_INTERVAL_MS;
+        }
+
+        while (flowControlToken.get() < MAX_TOKEN) {
+        }
+//        Log.d(TAG, "Unique Images: " + uniqueCount);
+        logList.add(TAG + ": Total Images: " + imageCount + "\n");
+        logList.add(TAG + ": Unique Images: " + uniqueCount + "\n");
+        logList.add(TAG + ": Stop: " + SystemClock.uptimeMillis() + "\n");
+
+        writeLog();
     }
 }

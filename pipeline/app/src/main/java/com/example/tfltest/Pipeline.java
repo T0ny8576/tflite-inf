@@ -180,6 +180,7 @@ public class Pipeline {
         File[] classDirs = testImages.listFiles();
         long lastPHash = 0;
         int uniqueCount = 0;
+        final int DIFF_THRESHOLD = 2;
 
         logList.add(TAG + ": Total Images: " + imageCount + "\n");
         logList.add(TAG + ": Start: " + SystemClock.uptimeMillis() + "\n");
@@ -190,7 +191,6 @@ public class Pipeline {
             String correctClass = classDir.getName();
 //            final int imageCount = classDir.list().length;
 //            Log.d(TAG, "Total Images: " + imageCount);
-            final int DIFF_THRESHOLD = 2;
 
             File[] imageFiles = classDir.listFiles();
             Arrays.sort(imageFiles);
