@@ -29,9 +29,11 @@ public class Pipeline {
     ImageClassifier imageClassifier = null;
     ObjectDetector objectDetector = null;
     ConcurrentLinkedDeque<String> logList;
+    final long FRAME_INPUT_INTERVAL_MS;
 
     public Pipeline(MainActivity mainActivity) {
         this.logList = mainActivity.logList;
+        this.FRAME_INPUT_INTERVAL_MS = mainActivity.FRAME_INPUT_INTERVAL_MS;
         try {
             ImageClassifier.ImageClassifierOptions.Builder optionsBuilder =
                     ImageClassifier.ImageClassifierOptions.builder()
@@ -132,6 +134,7 @@ public class Pipeline {
         logList.add(TAG + ": Total Images: " + imageCount + "\n");
         logList.add(TAG + ": Start: " + SystemClock.uptimeMillis() + "\n");
 
+        long last_frame_time = SystemClock.uptimeMillis() - FRAME_INPUT_INTERVAL_MS;
         for (int i = 0; i < folderCount; i++) {
             File classDir = classDirs[i];
             String correctClass = classDir.getName();
@@ -142,11 +145,20 @@ public class Pipeline {
             for (int j = 0; j < testImagePerFolder; j++) {
                 File imageFile = imageFiles[j];
                 Bitmap image = BitmapFactory.decodeFile(imageFile.getPath());
+                long cur_frame_time = SystemClock.uptimeMillis();
+                if (last_frame_time + FRAME_INPUT_INTERVAL_MS > cur_frame_time) {
+                    try {
+                        Thread.sleep(Math.max(last_frame_time + FRAME_INPUT_INTERVAL_MS - cur_frame_time, 0));
+                    } catch (InterruptedException e) {
+                        Log.w(TAG, "Thread interrupted.");
+                    }
+                }
                 if (classifyImage(image, correctClass)) {
                     good++;
                 } else {
                     bad++;
                 }
+                last_frame_time += FRAME_INPUT_INTERVAL_MS;
             }
         }
 
@@ -172,6 +184,7 @@ public class Pipeline {
         logList.add(TAG + ": Total Images: " + imageCount + "\n");
         logList.add(TAG + ": Start: " + SystemClock.uptimeMillis() + "\n");
 
+        long last_frame_time = SystemClock.uptimeMillis() - FRAME_INPUT_INTERVAL_MS;
         for (int i = 0; i < folderCount; i++) {
             File classDir = classDirs[i];
             String correctClass = classDir.getName();
@@ -185,6 +198,15 @@ public class Pipeline {
             for (int j = 0; j < testImagePerFolder; j++) {
                 File imageFile = imageFiles[j];
                 Bitmap image = BitmapFactory.decodeFile(imageFile.getPath());
+
+                long cur_frame_time = SystemClock.uptimeMillis();
+                if (last_frame_time + FRAME_INPUT_INTERVAL_MS > cur_frame_time) {
+                    try {
+                        Thread.sleep(Math.max(last_frame_time + FRAME_INPUT_INTERVAL_MS - cur_frame_time, 0));
+                    } catch (InterruptedException e) {
+                        Log.w(TAG, "Thread interrupted.");
+                    }
+                }
                 long curPHash = ImagePHash.pHash(image);
                 if (ImagePHash.distance(lastPHash, curPHash) >= DIFF_THRESHOLD) {
                     uniqueCount++;
@@ -195,6 +217,7 @@ public class Pipeline {
                         bad++;
                     }
                 }
+                last_frame_time += FRAME_INPUT_INTERVAL_MS;
             }
         }
 //        Log.d(TAG, "Unique Images: " + uniqueCount);

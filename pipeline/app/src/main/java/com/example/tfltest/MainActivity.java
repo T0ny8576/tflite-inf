@@ -57,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
     private FileWriter logFileWriter;
     private Timer timer;
     ConcurrentLinkedDeque<String> logList;
+    final long FRAME_INPUT_INTERVAL_MS = 600;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -191,8 +192,9 @@ public class MainActivity extends AppCompatActivity {
         final String testBasedir = Environment.getExternalStorageDirectory().getPath() +
                 "/test_images/hands";
         File testImages = new File(testBasedir + "/unknown");
-        final int imageCount = testImages.list().length;
+//        final int imageCount = testImages.list().length;
 //        Log.d(TAG, "Total Images: " + imageCount);
+        final int imageCount = 1200;
 
         final int MAX_TOKEN = 2;
         AtomicInteger flowControlToken = new AtomicInteger(MAX_TOKEN);
@@ -230,12 +232,22 @@ public class MainActivity extends AppCompatActivity {
         File[] imageFiles = testImages.listFiles();
         logList.add(TAG + ": Start: " + SystemClock.uptimeMillis() + "\n");
 
+        long last_frame_time = SystemClock.uptimeMillis() - FRAME_INPUT_INTERVAL_MS;
         for (int i = 0; i < imageCount; i++) {
             File imageFile = imageFiles[i];
-            while (flowControlToken.get() <= 0) {
+//            while (flowControlToken.get() <= 0) {
+//            }
+            long cur_frame_time = SystemClock.uptimeMillis();
+            if (last_frame_time + FRAME_INPUT_INTERVAL_MS > cur_frame_time) {
+                try {
+                    Thread.sleep(last_frame_time + FRAME_INPUT_INTERVAL_MS - cur_frame_time);
+                } catch (InterruptedException e) {
+                    Log.w(TAG, "Thread interrupted.");
+                }
             }
             detectHands(imageFile.getPath());
             flowControlToken.decrementAndGet();
+            last_frame_time += FRAME_INPUT_INTERVAL_MS;
         }
         while (flowControlToken.get() < MAX_TOKEN) {
         }

@@ -97,12 +97,12 @@ def compare_power(profiles, output):
 
 
 if __name__ == "__main__":
-    thumbsup_profile = draw("TFLTest-thumbsup-1s.txt", "battery_thumbsup.jpg", "Thumbs-up Detection")
-    od_profile = draw("TFLTest-ed0-1s.txt", "battery_od.jpg", "EfficientDet D0")
-    od_classifier_profile = draw("TFLTest-ed0-r50-1s.txt", "battery_od_classifier.jpg", "ED0 + ResNet50")
-    phash_profile = draw("TFLTest-phash-1s.txt", "battery_phash.jpg", "Perceptual Hash")
-    phash_od_profile = draw("TFLTest-phash-ed0-1s.txt", "battery_phash_od.jpg", "pHash + ED0")
-    phash_od_classifier_profile = draw("TFLTest-phash-ed0-r50-1s.txt", "battery_phash_od_classifier.jpg",
+    thumbsup_profile = draw("TFLTest-600-thumbsup-1s.txt", "battery_thumbsup.jpg", "Thumbs-up Detection")
+    od_profile = draw("TFLTest-600-ed0-1s.txt", "battery_od.jpg", "EfficientDet D0")
+    od_classifier_profile = draw("TFLTest-600-ed0-r50-1s.txt", "battery_od_classifier.jpg", "ED0 + ResNet50")
+    phash_profile = draw("TFLTest-600-phash-1s.txt", "battery_phash.jpg", "Perceptual Hash")
+    phash_od_profile = draw("TFLTest-600-phash-ed0-1s.txt", "battery_phash_od.jpg", "pHash + ED0")
+    phash_od_classifier_profile = draw("TFLTest-600-phash-ed0-r50-1s.txt", "battery_phash_od_classifier.jpg",
                                        "pHash + ED0 + ResNet50")
     power_profiles = [thumbsup_profile, od_profile, od_classifier_profile,
                       phash_profile, phash_od_profile, phash_od_classifier_profile]

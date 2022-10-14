@@ -23,9 +23,11 @@ public final class ImagePHash {
                                                        1., 1., 1., 1., 1., 1., 1., 1.,
                                                        1., 1., 1., 1., 1., 1., 1., 1.};
     ConcurrentLinkedDeque<String> logList;
+    final long FRAME_INPUT_INTERVAL_MS;
 
     public ImagePHash(MainActivity mainActivity) {
         this.logList = mainActivity.logList;
+        this.FRAME_INPUT_INTERVAL_MS = mainActivity.FRAME_INPUT_INTERVAL_MS;
     }
 
     public static long pHash(Bitmap img) {
@@ -126,9 +128,10 @@ public final class ImagePHash {
         final String testBasedir = Environment.getExternalStorageDirectory().getPath() +
                 "/test_images/hands";
         File testImages = new File(testBasedir + "/unknown");
-        final int imageCount = testImages.list().length;
+//        final int imageCount = testImages.list().length;
 //        Log.d(TAG, "Total Images: " + imageCount);
         // Increase threshold to compensate for a non-perfect resizing (?)
+        final int imageCount = 1200;
         final int DIFF_THRESHOLD = 2;
 
         File[] imageFiles = testImages.listFiles();
@@ -137,14 +140,25 @@ public final class ImagePHash {
         int uniqueCount = 0;
 
         logList.add(TAG + ": Start: " + SystemClock.uptimeMillis() + "\n");
+        long last_frame_time = SystemClock.uptimeMillis() - FRAME_INPUT_INTERVAL_MS;
         for (int i = 0; i < imageCount; i++) {
             File imageFile = imageFiles[i];
             Bitmap image = BitmapFactory.decodeFile(imageFile.getPath());
+
+            long cur_frame_time = SystemClock.uptimeMillis();
+            if (last_frame_time + FRAME_INPUT_INTERVAL_MS > cur_frame_time) {
+                try {
+                    Thread.sleep(Math.max(last_frame_time + FRAME_INPUT_INTERVAL_MS - cur_frame_time, 0));
+                } catch (InterruptedException e) {
+                    Log.w(TAG, "Thread interrupted.");
+                }
+            }
             long curPHash = pHash(image);
             if (distance(lastPHash, curPHash) >= DIFF_THRESHOLD) {
                 uniqueCount++;
                 lastPHash = curPHash;
             }
+            last_frame_time += FRAME_INPUT_INTERVAL_MS;
         }
 //        Log.d(TAG, "Unique Images: " + uniqueCount);
 
