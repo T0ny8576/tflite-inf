@@ -107,10 +107,10 @@ if __name__ == "__main__":
     # power_profiles = [thumbsup_profile, od_profile, od_classifier_profile,
     #                   phash_profile, phash_od_profile, phash_od_classifier_profile]
 
-    echo_cloudlet_profile = draw("TFLTest-echo-1s.txt", "battery_echo_cloudlet.jpg", "Echo Cloudlet")
-    od_cloudlet_classifier_profile = draw("TFLTest-ed0-mpn-1s.txt", "battery_od_cloudlet_classifier.jpg",
+    echo_cloudlet_profile = draw("TFLTest-600-echo-1s.txt", "battery_echo_cloudlet.jpg", "Echo Cloudlet")
+    od_cloudlet_classifier_profile = draw("TFLTest-600-ed0-mpn-1s.txt", "battery_od_cloudlet_classifier.jpg",
                                           "ED0 + Cloudlet MPN COV")
-    cloudlet_od_classifier_profile = draw("TFLTest-frcnn-mpn-1s.txt", "battery_cloudlet_od_classifier.jpg",
+    cloudlet_od_classifier_profile = draw("TFLTest-600-frcnn-mpn-1s.txt", "battery_cloudlet_od_classifier.jpg",
                                           "Cloudlet FRCNN + Cloudlet MPN COV")
     power_profiles = [echo_cloudlet_profile, od_cloudlet_classifier_profile, cloudlet_od_classifier_profile]
 

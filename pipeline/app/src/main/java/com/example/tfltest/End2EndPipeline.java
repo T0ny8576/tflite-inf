@@ -38,6 +38,7 @@ public class End2EndPipeline {
     ObjectDetector objectDetector = null;
     ConcurrentLinkedDeque<String> logList;
     final boolean OD_ON_GLASS = false;
+    final long FRAME_INPUT_INTERVAL_MS = 600;
 
     public End2EndPipeline(MainActivity mainActivity) {
         this.logList = mainActivity.logList;
@@ -131,6 +132,7 @@ public class End2EndPipeline {
         logList.add(TAG + ": Total Images: " + imageCount + "\n");
         logList.add(TAG + ": Start: " + SystemClock.uptimeMillis() + "\n");
 
+        long last_frame_time = SystemClock.uptimeMillis() - FRAME_INPUT_INTERVAL_MS;
         for (int i = 0; i < folderCount; i++) {
             File classDir = classDirs[i];
             String correctClass = classDir.getName();
@@ -142,6 +144,14 @@ public class End2EndPipeline {
                 File imageFile = imageFiles[j];
                 Bitmap image = BitmapFactory.decodeFile(imageFile.getPath());
 
+                long cur_frame_time = SystemClock.uptimeMillis();
+                if (last_frame_time + FRAME_INPUT_INTERVAL_MS > cur_frame_time) {
+                    try {
+                        Thread.sleep(Math.max(last_frame_time + FRAME_INPUT_INTERVAL_MS - cur_frame_time, 0));
+                    } catch (InterruptedException e) {
+                        Log.w(TAG, "Thread interrupted.");
+                    }
+                }
                 if (OD_ON_GLASS) {
                     ByteString croppedByteString = runOD(image);
                     if (croppedByteString != null) {
@@ -159,6 +169,7 @@ public class End2EndPipeline {
                             .addPayloads(jpegByteString)
                             .build(), SOURCE, true);
                 }
+                last_frame_time += FRAME_INPUT_INTERVAL_MS;
             }
         }
 
