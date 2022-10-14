@@ -470,7 +470,7 @@ public class MainActivity extends AppCompatActivity {
         }
 //        Log.d(TAG, "Unique Images: " + uniqueCount);
 
-        logList.add(TAG + ": Total Images: " + processed.get() + "\n");
+        logList.add(TAG + ": Total Images: " + imageCount + "\n");
         logList.add(TAG + ": Unique Images: " + uniqueCount + "\n");
         logList.add(TAG + ": Stop: " + SystemClock.uptimeMillis() + "\n");
 
