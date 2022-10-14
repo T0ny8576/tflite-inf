@@ -2,13 +2,16 @@ plugins {
     id 'com.android.application'
 }
 
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+
 android {
     namespace 'com.example.tfltest'
     compileSdk 33
 
     defaultConfig {
         applicationId "com.example.tfltest"
-        minSdk 21
+        minSdk 24
         targetSdk 33
         versionCode 1
         versionName "1.0"
@@ -17,6 +20,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "GABRIEL_HOST", properties.getProperty('gabrielHost'))
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -50,4 +56,7 @@ dependencies {
     // MediaPipe Hands Solution.
     implementation 'com.google.mediapipe:solution-core:latest.release'
     implementation 'com.google.mediapipe:hands:latest.release'
+
+    implementation 'edu.cmu.cs.gabriel:client:2.4.1'
+    implementation 'edu.cmu.cs.gabriel:protocol:2.0.1'
 }

@@ -22,6 +22,13 @@ import com.google.mediapipe.solutions.hands.HandLandmark;
 import com.google.mediapipe.solutions.hands.Hands;
 import com.google.mediapipe.solutions.hands.HandsOptions;
 import com.google.mediapipe.solutions.hands.HandsResult;
+import com.google.protobuf.ByteString;
+
+import edu.cmu.cs.gabriel.client.comm.ServerComm;
+import edu.cmu.cs.gabriel.client.results.ErrorType;
+import edu.cmu.cs.gabriel.protocol.Protos.InputFrame;
+import edu.cmu.cs.gabriel.protocol.Protos.ResultWrapper;
+import edu.cmu.cs.gabriel.protocol.Protos.PayloadType;
 
 import android.os.Environment;
 import android.os.SystemClock;
@@ -42,10 +49,14 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
+    private static final String SOURCE = "profiling";
+    private static final int PORT = 9099;
+
     private static final String LOGFILE = "TFLTest.txt";
     private static final long TIMER_PERIOD = 1000;
 
@@ -58,10 +69,13 @@ public class MainActivity extends AppCompatActivity {
     private Timer timer;
     ConcurrentLinkedDeque<String> logList;
 
+    private ServerComm serverComm;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // UI
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
@@ -80,6 +94,28 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // Server Communication
+        Consumer<ResultWrapper> consumer = resultWrapper -> {
+            if (resultWrapper.getResultsCount() == 0) {
+                return;
+            }
+
+            ResultWrapper.Result result = resultWrapper.getResults(0);
+            ByteString jpegByteString = result.getPayload();
+
+            // TODO: Handle payload
+
+        };
+
+        Consumer<ErrorType> onDisconnect = errorType -> {
+            Log.e(TAG, "Disconnect Error:" + errorType.name());
+            finish();
+        };
+
+        serverComm = ServerComm.createServerComm(
+                consumer, BuildConfig.GABRIEL_HOST, PORT, getApplication(), onDisconnect);
+
+        // Profiling tests
         File logFile = new File(getExternalFilesDir(null), LOGFILE);
         logFile.delete();
         logFile = new File(getExternalFilesDir(null), LOGFILE);
