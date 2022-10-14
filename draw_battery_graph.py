@@ -1,9 +1,15 @@
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 
+PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+LOG_FOLDER = os.path.join(PROJECT_DIR, "logs")
+OUTPUT_FOLDER = os.path.join(PROJECT_DIR, "plots")
 
-def draw(log_file, output, label):
-    with open(log_file, "r") as fi:
+
+def draw(log_file, output_file, label):
+    output_path = os.path.join(OUTPUT_FOLDER, output_file)
+    with open(os.path.join(LOG_FOLDER, log_file), "r") as fi:
         lines = fi.readlines()
         timestamps = []
         events = []
@@ -57,7 +63,7 @@ def draw(log_file, output, label):
         ax2.set_ylim((0, 5))
         plt.title(label)
         plt.show()
-        fig.savefig(output, format='jpeg', dpi=100, bbox_inches='tight')
+        fig.savefig(output_path, format='jpeg', dpi=100, bbox_inches='tight')
 
         power_y = []
         vi = 0
@@ -68,7 +74,8 @@ def draw(log_file, output, label):
         return label, current_t, power_y, total_time, total_images, unique_images
 
 
-def compare_power(profiles, output):
+def compare_power(profiles, output_file):
+    output_path = os.path.join(OUTPUT_FOLDER, output_file)
     fig, ax = plt.subplots()
     ax.set_xlabel("time /s", fontsize=12)
     ax.set_ylabel("power /W", fontsize=12)
@@ -93,7 +100,7 @@ def compare_power(profiles, output):
     plt.title("Power Comparison")
     plt.legend()
     plt.show()
-    fig.savefig(output, format='jpeg', dpi=100, bbox_inches='tight')
+    fig.savefig(output_path, format='jpeg', dpi=100, bbox_inches='tight')
 
 
 if __name__ == "__main__":
