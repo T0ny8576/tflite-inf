@@ -97,13 +97,21 @@ def compare_power(profiles, output):
 
 
 if __name__ == "__main__":
-    thumbsup_profile = draw("TFLTest-thumbsup-1s.txt", "battery_thumbsup.jpg", "Thumbs-up Detection")
-    od_profile = draw("TFLTest-ed0-1s.txt", "battery_od.jpg", "EfficientDet D0")
-    od_classifier_profile = draw("TFLTest-ed0-r50-1s.txt", "battery_od_classifier.jpg", "ED0 + ResNet50")
-    phash_profile = draw("TFLTest-phash-1s.txt", "battery_phash.jpg", "Perceptual Hash")
-    phash_od_profile = draw("TFLTest-phash-ed0-1s.txt", "battery_phash_od.jpg", "pHash + ED0")
-    phash_od_classifier_profile = draw("TFLTest-phash-ed0-r50-1s.txt", "battery_phash_od_classifier.jpg",
-                                       "pHash + ED0 + ResNet50")
-    power_profiles = [thumbsup_profile, od_profile, od_classifier_profile,
-                      phash_profile, phash_od_profile, phash_od_classifier_profile]
+    # thumbsup_profile = draw("TFLTest-thumbsup-1s.txt", "battery_thumbsup.jpg", "Thumbs-up Detection")
+    # od_profile = draw("TFLTest-ed0-1s.txt", "battery_od.jpg", "EfficientDet D0")
+    # od_classifier_profile = draw("TFLTest-ed0-r50-1s.txt", "battery_od_classifier.jpg", "ED0 + ResNet50")
+    # phash_profile = draw("TFLTest-phash-1s.txt", "battery_phash.jpg", "Perceptual Hash")
+    # phash_od_profile = draw("TFLTest-phash-ed0-1s.txt", "battery_phash_od.jpg", "pHash + ED0")
+    # phash_od_classifier_profile = draw("TFLTest-phash-ed0-r50-1s.txt", "battery_phash_od_classifier.jpg",
+    #                                    "pHash + ED0 + ResNet50")
+    # power_profiles = [thumbsup_profile, od_profile, od_classifier_profile,
+    #                   phash_profile, phash_od_profile, phash_od_classifier_profile]
+
+    echo_cloudlet_profile = draw("TFLTest-echo-1s.txt", "battery_echo_cloudlet.jpg", "Echo Cloudlet")
+    od_cloudlet_classifier_profile = draw("TFLTest-ed0-mpn-1s.txt", "battery_od_cloudlet_classifier.jpg",
+                                          "ED0 + Cloudlet MPN COV")
+    cloudlet_od_classifier_profile = draw("TFLTest-frcnn-mpn-1s.txt", "battery_cloudlet_od_classifier.jpg",
+                                          "Cloudlet FRCNN + Cloudlet MPN COV")
+    power_profiles = [echo_cloudlet_profile, od_cloudlet_classifier_profile, cloudlet_od_classifier_profile]
+
     compare_power(power_profiles, "power_comparison.jpg")
