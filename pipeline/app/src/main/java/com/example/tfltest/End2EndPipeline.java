@@ -51,9 +51,6 @@ public class End2EndPipeline {
 
             Protos.ResultWrapper.Result result = resultWrapper.getResults(0);
             ByteString jpegByteString = result.getPayload();
-
-            // TODO: Handle payload
-
         };
 
         Consumer<ErrorType> onDisconnect = errorType -> {
@@ -125,7 +122,8 @@ public class End2EndPipeline {
         File testImages = new File( Environment.getExternalStorageDirectory().getPath()
                 + "/test_images/stirling");
         final int folderCount = testImages.list().length;
-        final int testImagePerFolder = 150;
+
+        final int testImagePerFolder = 100;
         final int imageCount = testImagePerFolder * folderCount;
         File[] classDirs = testImages.listFiles();
 

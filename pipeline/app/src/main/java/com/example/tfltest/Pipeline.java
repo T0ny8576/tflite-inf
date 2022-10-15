@@ -125,7 +125,7 @@ public class Pipeline {
         File testImages = new File( Environment.getExternalStorageDirectory().getPath()
                 + "/test_images/stirling");
         final int folderCount = testImages.list().length;
-        final int testImagePerFolder = 150;
+        final int testImagePerFolder = 100;
         final int imageCount = testImagePerFolder * folderCount;
         File[] classDirs = testImages.listFiles();
 
@@ -163,7 +163,7 @@ public class Pipeline {
         File testImages = new File( Environment.getExternalStorageDirectory().getPath()
                 + "/test_images/stirling");
         final int folderCount = testImages.list().length;
-        final int testImagePerFolder = 150;
+        final int testImagePerFolder = 100;
         final int imageCount = testImagePerFolder * folderCount;
         File[] classDirs = testImages.listFiles();
         long lastPHash = 0;
